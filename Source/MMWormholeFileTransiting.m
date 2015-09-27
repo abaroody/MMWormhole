@@ -28,6 +28,7 @@
 @interface MMWormholeFileTransiting ()
 
 @property (nonatomic, copy) NSString *applicationGroupIdentifier;
+@property (nonatomic, copy) NSString *rubymotionSimulatorPath;
 @property (nonatomic, copy) NSString *directory;
 @property (nonatomic, strong, readwrite) NSFileManager *fileManager;
 
@@ -44,17 +45,29 @@
                                  optionalDirectory:(nullable NSString *)directory {
     if ((self = [super init])) {
         _applicationGroupIdentifier = [identifier copy];
+        _rubymotionSimulatorPath = NULL;
         _directory = [directory copy];
         _fileManager = [[NSFileManager alloc] init];
-        
+
         if (_applicationGroupIdentifier) {
             [self checkAppGroupCapabilities];
         }
     }
-    
+
     return self;
 }
 
+- (instancetype)initForRubymotionSimulatorWithPath:(nullable NSString *)path
+                                 optionalDirectory:(nullable NSString *)directory {
+    if ((self = [super init])) {
+        _applicationGroupIdentifier = NULL;
+        _rubymotionSimulatorPath = [path copy];
+        _directory = [directory copy];
+        _fileManager = [[NSFileManager alloc] init];
+    }
+
+    return self;
+}
 
 #pragma mark - Private Check App Group Capabilities
 
@@ -69,16 +82,16 @@
     NSURL *appGroupContainer = [self.fileManager containerURLForSecurityApplicationGroupIdentifier:self.applicationGroupIdentifier];
     NSString *appGroupContainerPath = [appGroupContainer path];
     NSString *directoryPath = appGroupContainerPath;
-    
+
     if (self.directory != nil) {
         directoryPath = [appGroupContainerPath stringByAppendingPathComponent:self.directory];
     }
-    
+
     [self.fileManager createDirectoryAtPath:directoryPath
                 withIntermediateDirectories:YES
                                  attributes:nil
                                       error:NULL];
-    
+
     return directoryPath;
 }
 
@@ -86,11 +99,11 @@
     if (identifier == nil || identifier.length == 0) {
         return nil;
     }
-    
+
     NSString *directoryPath = [self messagePassingDirectoryPath];
     NSString *fileName = [NSString stringWithFormat:@"%@.archive", identifier];
     NSString *filePath = [directoryPath stringByAppendingPathComponent:fileName];
-    
+
     return filePath;
 }
 
@@ -101,22 +114,22 @@
     if (identifier == nil) {
         return NO;
     }
-    
+
     if (messageObject) {
         NSData *data = [NSKeyedArchiver archivedDataWithRootObject:messageObject];
         NSString *filePath = [self filePathForIdentifier:identifier];
-        
+
         if (data == nil || filePath == nil) {
             return NO;
         }
-        
+
         BOOL success = [data writeToFile:filePath atomically:YES];
-        
+
         if (!success) {
             return NO;
         }
     }
-    
+
     return YES;
 }
 
@@ -124,21 +137,21 @@
     if (identifier == nil) {
         return nil;
     }
-    
+
     NSString *filePath = [self filePathForIdentifier:identifier];
-    
+
     if (filePath == nil) {
         return nil;
     }
-    
+
     NSData *data = [NSData dataWithContentsOfFile:filePath];
-    
+
     if (data == nil) {
         return nil;
     }
-    
+
     id messageObject = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-    
+
     return messageObject;
 }
 
@@ -149,12 +162,12 @@
 - (void)deleteContentForAllMessages {
     if (self.directory != nil) {
         NSArray *messageFiles = [self.fileManager contentsOfDirectoryAtPath:[self messagePassingDirectoryPath] error:NULL];
-        
+
         NSString *directoryPath = [self messagePassingDirectoryPath];
-        
+
         for (NSString *path in messageFiles) {
             NSString *filePath = [directoryPath stringByAppendingPathComponent:path];
-            
+
             [self.fileManager removeItemAtPath:filePath error:NULL];
         }
     }

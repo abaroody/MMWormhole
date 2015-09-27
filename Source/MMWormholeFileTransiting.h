@@ -25,12 +25,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/** 
+/**
  This class is a default implementation of the MMWormholeTransiting protocol that implements
  message transiting by archiving and unarchiving messages that are written and read to files on
  disk in an optional directory in the given app group. This default implementation has a relatively
  naive implementation of file writing, and simply uses the built in NSData file operations.
- 
+
  This class is able to be subclassed to provide slightly different file reading and writing behavior
  while still maintaining the logic for naming a file within the given directory and app group.
  */
@@ -40,11 +40,14 @@ NS_ASSUME_NONNULL_BEGIN
  Designated Initializer. This method must be called with an application group identifier that will
  be used to contain passed messages. It is also recommended that you include a directory name for
  messages to be read and written, but this parameter is optional.
- 
+
  @param identifier An application group identifier
  @param directory An optional directory to read/write messages
  */
 - (instancetype)initWithApplicationGroupIdentifier:(nullable NSString *)identifier
+                                 optionalDirectory:(nullable NSString *)directory NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)initForRubymotionSimulatorWithPath:(nullable NSString *)path
                                  optionalDirectory:(nullable NSString *)directory NS_DESIGNATED_INITIALIZER;
 
 /**
@@ -58,16 +61,16 @@ NS_ASSUME_NONNULL_BEGIN
  This method returns the full file path for the message passing directory, including the optional
  directory passed in the designated initializer. Subclasses can use this method to provide custom
  implementations.
- 
+
  @return The full path to the message passing directory.
  */
 - (nullable NSString *)messagePassingDirectoryPath;
 
 /**
- This method returns the full file path for the file associated with the given message identifier. 
- It includes the optional directory passed in the designated initializer if there is one. Subclasses 
+ This method returns the full file path for the file associated with the given message identifier.
+ It includes the optional directory passed in the designated initializer if there is one. Subclasses
  can use this method to provide custom implementations.
- 
+
  @return The full path to the file associated with the given message identifier.
  */
 - (nullable NSString *)filePathForIdentifier:(nullable NSString *)identifier;

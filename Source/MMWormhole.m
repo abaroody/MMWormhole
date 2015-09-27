@@ -59,26 +59,51 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
 - (instancetype)initWithApplicationGroupIdentifier:(nullable NSString *)identifier
                                  optionalDirectory:(nullable NSString *)directory {
     if ((self = [super init])) {
-        
+
         if (NO == [[NSFileManager defaultManager] respondsToSelector:@selector(containerURLForSecurityApplicationGroupIdentifier:)]) {
             //Protect the user of a crash because of iOSVersion < iOS7
             return nil;
         }
-        
+
         self.wormholeMessenger = [[MMWormholeFileTransiting alloc] initWithApplicationGroupIdentifier:[identifier copy]
                                                                                     optionalDirectory:[directory copy]];
 
         _listenerBlocks = [NSMutableDictionary dictionary];
-        
+
         // Only respects notification coming from self.
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(didReceiveMessageNotification:)
                                                      name:MMWormholeNotificationName
                                                    object:self];
     }
-    
+
     return self;
 }
+
+- (instancetype)initForRubymotionSimulatorWithPath:(nullable NSString *)path
+                                 optionalDirectory:(nullable NSString *)directory {
+    if ((self = [super init])) {
+
+        if (NO == [[NSFileManager defaultManager] respondsToSelector:@selector(containerURLForSecurityApplicationGroupIdentifier:)]) {
+            //Protect the user of a crash because of iOSVersion < iOS7
+            return nil;
+        }
+
+        self.wormholeMessenger = [[MMWormholeFileTransiting alloc] initForRubymotionSimulatorWithPath:[path copy]
+                                                                                    optionalDirectory:[directory copy]];
+
+        _listenerBlocks = [NSMutableDictionary dictionary];
+
+        // Only respects notification coming from self.
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(didReceiveMessageNotification:)
+                                                     name:MMWormholeNotificationName
+                                                   object:self];
+    }
+
+    return self;
+}
+
 
 - (instancetype)initWithApplicationGroupIdentifier:(nullable NSString *)identifier
                                  optionalDirectory:(nullable NSString *)directory
@@ -114,13 +139,51 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
                 break;
         }
     }
-    
+
+    return self;
+}
+
+- (instancetype)initForRubymotionSimulatorWithPath:(nullable NSString *)path
+                                 optionalDirectory:(nullable NSString *)directory
+                                    transitingType:(MMWormholeTransitingType)transitingType {
+    if ((self = [self initForRubymotionSimulatorWithPath:path optionalDirectory:directory])) {
+        switch (transitingType) {
+            case MMWormholeTransitingTypeFile:
+                // Default
+                break;
+            case MMWormholeTransitingTypeCoordinatedFile:
+                self.wormholeMessenger = [[MMWormholeCoordinatedFileTransiting alloc] initForRubymotionSimulatorWithPath:path
+                                                                                                       optionalDirectory:directory];
+                break;
+            case MMWormholeTransitingTypeSessionContext:
+#if ( defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000 )
+                self.wormholeMessenger = [[MMWormholeSessionContextTransiting alloc] initForRubymotionSimulatorWithPath:path
+                                                                                                      optionalDirectory:directory];
+#endif
+                break;
+            case MMWormholeTransitingTypeSessionFile:
+#if ( defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000 )
+                self.wormholeMessenger = [[MMWormholeSessionFileTransiting alloc] initForRubymotionSimulatorWithPath:path
+                                                                                                   optionalDirectory:directory];
+#endif
+                break;
+            case MMWormholeTransitingTypeSessionMessage:
+#if ( defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000 )
+                self.wormholeMessenger = [[MMWormholeSessionMessageTransiting alloc] initForRubymotionSimulatorWithPath:path
+                                                                                                      optionalDirectory:directory];
+#endif
+                break;
+            default:
+                break;
+        }
+    }
+
     return self;
 }
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    
+
     CFNotificationCenterRef const center = CFNotificationCenterGetDarwinNotifyCenter();
     CFNotificationCenterRemoveEveryObserver(center, (__bridge const void *)(self));
 }
@@ -138,7 +201,7 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
 
 - (void)registerForNotificationsWithIdentifier:(nullable NSString *)identifier {
     [self unregisterForNotificationsWithIdentifier:identifier];
-    
+
     CFNotificationCenterRef const center = CFNotificationCenterGetDarwinNotifyCenter();
     CFStringRef str = (__bridge CFStringRef)identifier;
     CFNotificationCenterAddObserver(center,
@@ -173,7 +236,7 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
 - (void)didReceiveMessageNotification:(NSNotification *)notification {
     NSDictionary *userInfo = notification.userInfo;
     NSString *identifier = [userInfo valueForKey:@"identifier"];
-    
+
     if (identifier != nil) {
         id messageObject = [self.wormholeMessenger messageObjectForIdentifier:identifier];
 
@@ -189,7 +252,7 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
     typedef void (^MessageListenerBlock)(id messageObject);
 
     MessageListenerBlock listenerBlock = [self listenerBlockForIdentifier:identifier];
-    
+
     if (listenerBlock) {
         dispatch_async(dispatch_get_main_queue(), ^{
             listenerBlock(message);
@@ -209,7 +272,7 @@ void wormholeNotificationCallback(CFNotificationCenterRef center,
 
 - (nullable id)messageWithIdentifier:(nullable NSString *)identifier {
     id messageObject = [self.wormholeMessenger messageObjectForIdentifier:identifier];
-    
+
     return messageObject;
 }
 

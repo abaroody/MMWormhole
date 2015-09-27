@@ -36,11 +36,24 @@
     if ((self = [super initWithApplicationGroupIdentifier:identifier optionalDirectory:directory])) {
         // Setup transiting with the default session
         _session = [WCSession defaultSession];
-        
+
         // Ensure that the MMWormholeSession's delegate is set to enable message sending
         NSAssert(_session.delegate != nil, @"WCSession's delegate is required to be set before you can send messages. Please initialize the MMWormholeSession sharedListeningSession object prior to creating a separate wormhole using the MMWormholeSessionTransiting classes.");
     }
-    
+
+    return self;
+}
+
+- (instancetype)initForRubymotionSimulatorWithPath:(nullable NSString *)path
+                                 optionalDirectory:(nullable NSString *)directory {
+    if ((self = [super initForRubymotionSimulatorWithPath:path optionalDirectory:directory])) {
+        // Setup transiting with the default session
+        _session = [WCSession defaultSession];
+
+        // Ensure that the MMWormholeSession's delegate is set to enable message sending
+        NSAssert(_session.delegate != nil, @"WCSession's delegate is required to be set before you can send messages. Please initialize the MMWormholeSession sharedListeningSession object prior to creating a separate wormhole using the MMWormholeSessionTransiting classes.");
+    }
+
     return self;
 }
 
@@ -58,24 +71,24 @@
     if (identifier == nil) {
         return NO;
     }
-    
+
     if (messageObject) {
         NSData *data = [NSKeyedArchiver archivedDataWithRootObject:messageObject];
-        
+
         if (data == nil) {
             return NO;
         }
-        
+
         if ([self.session isReachable]) {
             [self.session
              sendMessage:@{identifier : data}
              replyHandler:nil
              errorHandler:^(NSError * __nonnull error) {
-                 
+
              }];
         }
     }
-    
+
     return NO;
 }
 
